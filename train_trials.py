@@ -1,92 +1,169 @@
-"""Train across multiple start/goal trials (4 trials by default).
-
-This script reuses one SAC model and continues training across each trial (start,goal).
-It logs per-trial performance and saves the final model.
 """
-from typing import List, Tuple
-import csv
+TRAINING WORKER CLIENT
+This script connects to the Commander Terminal and executes training
+tasks on demand. It cannot run standalone.
+"""
+import socket
+import json
 import os
+import numpy as np
+import torch
 
-from lam_sac_env import SimpleLAM, TwoWallsGap10x10LAMEnv, RewardCfg
+# --- GRAPHICS BACKEND FIX ---
+import matplotlib
+# Force the native Mac driver. 
+# This avoids the "Qt platform plugin 'cocoa'" crash entirely.
+try:
+    matplotlib.use('MacOSX') 
+except:
+    print("[Warning] MacOSX backend not found. Graphics might be disabled.")
+
+import matplotlib.pyplot as plt
 from stable_baselines3 import SAC
 from stable_baselines3.common.vec_env import DummyVecEnv
-import numpy as np
 
-# Define 4 different trials: (start, goal)
-TRIALS: List[Tuple[Tuple[int,int], Tuple[int,int]]] = [
-    ((0, 0), (9, 9)),  # top-left -> bottom-right
-    ((9, 9), (0, 0)),  # bottom-right -> top-left
-    ((0, 9), (9, 0)),  # bottom-left -> top-right
-    ((9, 0), (0, 9)),  # top-right -> bottom-left
-]
+# --- CRITICAL IMPORT ---
+# This was missing in the previous error. It pulls your custom AI from the other file.
+from lam_sac_env import LargeActionModel, TwoWallsGap10x10LAMEnv
 
+# Configuration
+HOST = 'localhost'
+PORT = 65432
 
-def evaluate_model(model: SAC, start, goal, lam, reward_cfg, n_episodes=50):
-    env = TwoWallsGap10x10LAMEnv(goal=goal, start=start, reward_cfg=reward_cfg, lam=lam)
+def evaluate_and_visualize(model, start, goal, lam_model, lam_vector, n_episodes=3):
+    """
+    Visualizes the result of the training for the user to see.
+    """
+    print(f"   -> Visualizing performance...")
+    env = TwoWallsGap10x10LAMEnv(goal=tuple(goal), start=tuple(start), lam_model=lam_model)
+    
+    # Inject the specific LAM context (Urgency/Caution)
+    tensor_ctx = torch.tensor(lam_vector, dtype=torch.float32)
+    env.update_lam_context(tensor_ctx)
+
+    plt.ion()
+    # We use a try/except block for plotting to ensure training doesn't crash if graphics fail
+    try:
+        fig = plt.gcf()
+        if not plt.fignum_exists(fig.number):
+             fig, ax = plt.subplots(figsize=(5, 5))
+        else:
+             ax = plt.gca()
+             ax.clear()
+    except:
+        fig, ax = plt.subplots(figsize=(5, 5))
+
+    img = None
     successes = 0
-    lengths = []
+
     for ep in range(n_episodes):
         obs, _ = env.reset()
         done = False
-        step = 0
         while not done:
             action, _ = model.predict(obs, deterministic=True)
-            obs, reward, terminated, truncated, info = env.step(action)
+            obs, _, terminated, truncated, info = env.step(action)
             done = terminated or truncated
-            step += 1
-            if done:
-                if info.get("is_success"):
-                    successes += 1
-                lengths.append(step)
-    env.close()
-    success_rate = successes / n_episodes
-    avg_len = float(np.mean(lengths)) if lengths else float('nan')
-    return success_rate, avg_len
+            
+            # Render
+            try:
+                frame = env.render()
+                if img is None:
+                    img = ax.imshow(frame)
+                    ax.axis('off')
+                else:
+                    img.set_data(frame)
+                plt.pause(0.01)
+            except:
+                pass # Skip render if window closed
 
+            if done and info.get("is_success"):
+                successes += 1
+    
+    env.close()
+    return successes / n_episodes
 
 def main():
     os.makedirs("models", exist_ok=True)
-    log_path = "training_trials_log.csv"
-    lam = SimpleLAM()
-    model = None
-    prev_success_rate = None
+    
+    # Initialize the custom Neural Network Class
+    lam_model = LargeActionModel()
+    
+    print(f"--- ROBOT TRAINING CLIENT ---")
+    print(f"Attempting to connect to Commander at {HOST}:{PORT}...")
+    
+    try:
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((HOST, PORT))
+        print("SUCCESS: Connected to Commander Terminal.")
+    except ConnectionRefusedError:
+        print("\n[CRITICAL ERROR] Connection Refused.")
+        print("The Commander Terminal is NOT running.")
+        print("You must start 'commander_terminal.py' first.")
+        return
 
-    with open(log_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["trial_idx", "start", "goal", "success_rate", "avg_length"])
+    # Load existing model or create new one
+    model_path = "models/sac_lam_trials_final.zip"
+    if os.path.exists(model_path):
+        print("Loaded existing model.")
+        model = SAC.load(model_path)
+    else:
+        print("Created new SAC model.")
+        # Create a dummy env just to initialize the model shape
+        dummy_env = DummyVecEnv([lambda: TwoWallsGap10x10LAMEnv(goal=(9,9))])
+        model = SAC("MlpPolicy", dummy_env, verbose=1)
 
-    for i, (start, goal) in enumerate(TRIALS):
-        print(f"\n=== Trial {i+1}/{len(TRIALS)}: start={start} goal={goal} ===")
-        reward_cfg = lam.suggest_reward_cfg(prev_success_rate)
-        env = TwoWallsGap10x10LAMEnv(goal=goal, start=start, reward_cfg=reward_cfg, lam=lam)
-        venv = DummyVecEnv([lambda: env])
+    # --- MAIN LISTENING LOOP ---
+    try:
+        while True:
+            print("\n[Standby] Waiting for orders...")
+            data = client_socket.recv(4096)
+            if not data:
+                break
+            
+            command = json.loads(data.decode())
+            
+            if command.get("action") == "shutdown":
+                print("Shutdown signal received.")
+                break
+                
+            if command.get("action") == "train":
+                start = command['start']
+                goal = command['goal']
+                lam_vec = command['lam_vector']
+                steps = command.get('steps', 5000)
+                
+                print(f"[Mission Start] Training: Start={start} -> Goal={goal}")
+                print(f"               Constraints: {lam_vec[:2]}...")
 
-        if model is None:
-            model = SAC("MlpPolicy", venv, verbose=1)
-        else:
-            model.set_env(venv)
+                # 1. Setup Environment with new parameters
+                env = TwoWallsGap10x10LAMEnv(goal=tuple(goal), start=tuple(start), lam_model=lam_model)
+                
+                # Apply LAM Context (Convert list back to Tensor)
+                ctx_tensor = torch.tensor(lam_vec, dtype=torch.float32)
+                env.update_lam_context(ctx_tensor)
+                
+                # 2. Train
+                venv = DummyVecEnv([lambda: env])
+                model.set_env(venv)
+                model.learn(total_timesteps=steps)
+                
+                # 3. Save
+                model.save(model_path)
+                
+                # 4. Evaluate (Visual)
+                success_rate = evaluate_and_visualize(model, start, goal, lam_model, lam_vec)
+                
+                # 5. Report back
+                msg = f"Training Complete. Success Rate: {success_rate*100:.1f}%"
+                client_socket.sendall(msg.encode())
 
-        timesteps = 20000
-        model.learn(total_timesteps=timesteps)
-
-        model_path = f"models/sac_lam_trial_{i+1}.zip"
-        model.save(model_path)
-        print(f"Saved model to {model_path}")
-
-        success_rate, avg_len = evaluate_model(model, start, goal, lam, reward_cfg, n_episodes=50)
-        print(f"Trial {i+1} success_rate={success_rate:.3f}, avg_len={avg_len:.1f}")
-
-        with open(log_path, "a", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([i + 1, start, goal, success_rate, avg_len])
-
-        prev_success_rate = success_rate
-
-    if model is not None:
-        final_path = "models/sac_lam_trials_final.zip"
-        model.save(final_path)
-        print(f"Final model saved to {final_path}")
-
+    except KeyboardInterrupt:
+        print("Stopping manually.")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        client_socket.close()
+        print("Disconnected.")
 
 if __name__ == '__main__':
     main()
