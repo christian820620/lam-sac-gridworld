@@ -3,7 +3,7 @@
 # LAM + SAC Gridworld
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/christian820620/lam-sac-gridworld/badge)](https://scorecard.dev/viewer/?uri=github.com/christian820620/lam-sac-gridworld)
-[![OpenSSF Best Practices](https://bestpractices.coreinfrastructure.org/projects/12382/badge)](https://bestpractices.coreinfrastructure.org/projects/12382)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12382/badge)](https://www.bestpractices.dev/projects/12382)
 
 This project implements a small 10x10 Gridworld with two walls and a gap and trains a single Stable-Baselines SAC agent. LAM supplies directional hints.
 
