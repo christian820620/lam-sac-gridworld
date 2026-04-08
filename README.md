@@ -44,3 +44,6 @@ Notes:
 - the terminal should not depend on the train_trials file, it should be the opposite. The training file should depend on the commander_terminal, given the terminal is what is processing the prompts for training. 
 
 Qt driver installed for faster loading
+
+Run the training script:
+python train_curriculum.py
