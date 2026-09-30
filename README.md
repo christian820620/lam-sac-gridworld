@@ -4,8 +4,6 @@
 
 An experimental reinforcement-learning project that trains a Soft Actor-Critic (SAC) agent to navigate a 10 x 10 grid with blocked passages. A small Commander/LAM prototype turns simple text commands into reward-shaping context for training.
 
-![Recorded SAC curriculum success rates](figures/success_by_stage.png)
-
 ## What It Demonstrates
 
 - A custom [Gymnasium](https://gymnasium.farama.org/) environment with walls, a single passage, configurable start and goal positions, and episode rendering.
