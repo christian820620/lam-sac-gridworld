@@ -1,0 +1,10 @@
+id,type,stage_or_trial_idx,start,goal,avg_length,source_file
+1,stage,1,"(0, 0)","(9, 1)",10.0,training_log.csv
+2,stage,2,"(0, 0)","(9, 3)",12.0,training_log.csv
+3,stage,3,"(0, 0)","(9, 5)",14.0,training_log.csv
+4,stage,4,"(0, 0)","(9, 7)",16.0,training_log.csv
+5,stage,5,"(0, 0)","(9, 9)",18.0,training_log.csv
+6,trial,1,"(0, 0)","(9, 9)",18.0,training_trials_log.csv
+7,trial,2,"(9, 9)","(0, 0)",18.0,training_trials_log.csv
+8,trial,3,"(0, 9)","(9, 0)",18.0,training_trials_log.csv
+9,trial,4,"(9, 0)","(0, 9)",18.0,training_trials_log.csv

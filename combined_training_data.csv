@@ -1,0 +1,27 @@
+source_file,algo,episode,timesteps,reward,episode_length,avg_length,collisions,success,actor_loss,critic_loss,entropy,gy,nasiu,Unnamed: 2,stage,goal,trial_idx,start
+combined_training_data.csv,,,,,,,,,,,,stable-baselines3,,,,,,
+combined_training_data.csv,,,,,,,,,,,,torch,,,,,,
+combined_training_data.csv,,,,,,,,,,,,nu,py,,,,,
+combined_training_data.csv,,,,,,,,,,,,,atplotlib,,,,,
+combined_training_data.csv,,,,,,10.0,,1.0,,,,,,,1.0,"(9, 1)",,
+combined_training_data.csv,,,,,,12.0,,1.0,,,,,,,2.0,"(9, 3)",,
+combined_training_data.csv,,,,,,14.0,,1.0,,,,,,,3.0,"(9, 5)",,
+combined_training_data.csv,,,,,,16.0,,1.0,,,,,,,4.0,"(9, 7)",,
+combined_training_data.csv,,,,,,18.0,,1.0,,,,,,,5.0,"(9, 9)",,
+combined_training_data.csv,,,,,,18.0,,1.0,,,,,,,,"(9, 9)",1.0,"(0, 0)"
+combined_training_data.csv,,,,,,18.0,,1.0,,,,,,,,"(0, 0)",2.0,"(9, 9)"
+combined_training_data.csv,,,,,,18.0,,1.0,,,,,,,,"(9, 0)",3.0,"(0, 9)"
+combined_training_data.csv,,,,,,18.0,,1.0,,,,,,,,"(0, 9)",4.0,"(9, 0)"
+requirements.txt,,,,,,,,,,,,stable-baselines3,,,,,,
+requirements.txt,,,,,,,,,,,,torch,,,,,,
+requirements.txt,,,,,,,,,,,,nu,py,,,,,
+requirements.txt,,,,,,,,,,,,,atplotlib,,,,,
+training_log.csv,,,,,,10.0,,1.0,,,,,,,1.0,"(9, 1)",,
+training_log.csv,,,,,,12.0,,1.0,,,,,,,2.0,"(9, 3)",,
+training_log.csv,,,,,,14.0,,1.0,,,,,,,3.0,"(9, 5)",,
+training_log.csv,,,,,,16.0,,1.0,,,,,,,4.0,"(9, 7)",,
+training_log.csv,,,,,,18.0,,1.0,,,,,,,5.0,"(9, 9)",,
+training_trials_log.csv,,,,,,18.0,,1.0,,,,,,,,"(9, 9)",1.0,"(0, 0)"
+training_trials_log.csv,,,,,,18.0,,1.0,,,,,,,,"(0, 0)",2.0,"(9, 9)"
+training_trials_log.csv,,,,,,18.0,,1.0,,,,,,,,"(9, 0)",3.0,"(0, 9)"
+training_trials_log.csv,,,,,,18.0,,1.0,,,,,,,,"(0, 9)",4.0,"(9, 0)"
